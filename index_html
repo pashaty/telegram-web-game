@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Путь с Помойки</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #1e1e1e;
+      font-family: 'Courier New', Courier, monospace;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: url('https://i.ibb.co/5c9pFSh/street-bg.png') no-repeat center center;
+      background-size: cover;
+      border: 5px solid #555;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const keys = {};
+    document.addEventListener('keydown', e => keys[e.key] = true);
+    document.addEventListener('keyup', e => keys[e.key] = false);
+
+    // Для мобильных
+    document.addEventListener('touchstart', handleTouch);
+    document.addEventListener('touchmove', handleTouch);
+
+    function handleTouch(e) {
+      const touch = e.touches[0];
+      const x = touch.clientX;
+      const y = touch.clientY;
+      keys['touchX'] = x;
+      keys['touchY'] = y;
+    }
+
+    const playerImg = new Image();
+    playerImg.src = 'https://i.ibb.co/xJgdYhW/hobo-sprite.png'; // бомж персонаж
+
+    const binImg = new Image();
+    binImg.src = 'https://i.ibb.co/k4gXsLx/trash-bin.png';
+
+    const player = {
+      x: 100,
+      y: 100,
+      width: 40,
+      height: 40,
+      money: 0,
+      hunger: 100,
+      energy: 100,
+      inventory: [],
+      level: 1,
+      exp: 0,
+      speed: 3
+    };
+
+    const bins = [
+      { x: 300, y: 200, used: false },
+      { x: 500, y: 400, used: false }
+    ];
+
+    function drawPlayer() {
+      ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+    }
+
+    function drawBins() {
+      bins.forEach(bin => {
+        if (!bin.used) {
+          ctx.drawImage(binImg, bin.x, bin.y, 40, 50);
+        }
+      });
+    }
+
+    function drawUI() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillRect(0, 0, 800, 80);
+      ctx.fillStyle = '#fff';
+      ctx.font = '16px Courier';
+      ctx.fillText(`💰 Деньги: $${player.money}`, 10, 20);
+      ctx.fillText(`🍗 Голод: ${Math.floor(player.hunger)}%`, 10, 40);
+      ctx.fillText(`⚡ Энергия: ${Math.floor(player.energy)}%`, 10, 60);
+      ctx.fillText(`🎒 Инвентарь: ${player.inventory.join(', ') || 'пусто'}`, 200, 20);
+    }
+
+    function updatePlayer() {
+      if (keys['ArrowUp']) player.y -= player.speed;
+      if (keys['ArrowDown']) player.y += player.speed;
+      if (keys['ArrowLeft']) player.x -= player.speed;
+      if (keys['ArrowRight']) player.x += player.speed;
+
+      // Мобильные касания (направо-влево)
+      if (keys['touchX']) {
+        if (keys['touchX'] < canvas.width / 3) player.x -= player.speed;
+        else if (keys['touchX'] > canvas.width * 2 / 3) player.x += player.speed;
+      }
+
+      player.hunger -= 0.01;
+      player.energy -= 0.005;
+
+      if (player.hunger < 0) player.hunger = 0;
+      if (player.energy < 0) player.energy = 0;
+    }
+
+    function checkInteractions() {
+      bins.forEach(bin => {
+        const dx = player.x - bin.x;
+        const dy = player.y - bin.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 50 && !bin.used) {
+          player.money += Math.floor(Math.random() * 5);
+          player.hunger += 10;
+          player.inventory.push('еда');
+          bin.used = true;
+        }
+      });
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      updatePlayer();
+      checkInteractions();
+      drawBins();
+      drawPlayer();
+      drawUI();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Ждём загрузки изображений
+    let loaded = 0;
+    [playerImg, binImg].forEach(img => {
+      img.onload = () => {
+        loaded++;
+        if (loaded === 2) gameLoop();
+      };
+    });
+  </script>
+</body>
+</html>
