@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Кибер-Боец: Последний уровень</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    canvas {
+      border: 2px solid #fff;
+      background: linear-gradient(to bottom, #111, #222);
+    }
+  </style>
+</head>
+<body>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+class Player {
+  constructor(x, y, width, height, color) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.color = color;
+    this.speed = 5;
+    this.dx = 0;
+    this.dy = 0;
+  }
+
+  draw(ctx) {
+    ctx.fillStyle = this.color;
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+  }
+
+  update() {
+    this.x += this.dx;
+    this.y += this.dy;
+    // Границы
+    this.x = Math.max(0, Math.min(this.x, 800 - this.width));
+    this.y = Math.max(0, Math.min(this.y, 600 - this.height));
+  }
+
+  move(direction) {
+    switch(direction) {
+      case 'left': this.dx = -this.speed; break;
+      case 'right': this.dx = this.speed; break;
+      case 'up': this.dy = -this.speed; break;
+      case 'down': this.dy = this.speed; break;
+    }
+  }
+
+  stop(direction) {
+    if (['left', 'right'].includes(direction)) this.dx = 0;
+    if (['up', 'down'].includes(direction)) this.dy = 0;
+  }
+}
+
+class Enemy {
+  constructor(x, y, width, height, color, speed) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.color = color;
+    this.speed = speed;
+  }
+
+  draw(ctx) {
+    ctx.fillStyle = this.color;
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+  }
+
+  update() {
+    this.y += this.speed;
+    if (this.y > 600) {
+      this.y = -this.height;
+      this.x = Math.random() * (800 - this.width);
+    }
+  }
+}
+
+function detectCollision(obj1, obj2) {
+  return obj1.x < obj2.x + obj2.width &&
+         obj1.x + obj1.width > obj2.x &&
+         obj1.y < obj2.y + obj2.height &&
+         obj1.y + obj1.height > obj2.y;
+}
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const player = new Player(375, 500, 50, 50, 'lime');
+const enemies = Array.from({length: 5}, () => new Enemy(
+  Math.random() * 750, Math.random() * -600, 40, 40, 'red', 2 + Math.random() * 3
+));
+
+const keys = {};
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (e.key === 'ArrowLeft') player.move('left');
+  if (e.key === 'ArrowRight') player.move('right');
+  if (e.key === 'ArrowUp') player.move('up');
+  if (e.key === 'ArrowDown') player.move('down');
+});
+document.addEventListener('keyup', e => {
+  keys[e.key] = false;
+  if (['ArrowLeft', 'ArrowRight'].includes(e.key)) player.stop(e.key.replace('Arrow', '').toLowerCase());
+  if (['ArrowUp', 'ArrowDown'].includes(e.key)) player.stop(e.key.replace('Arrow', '').toLowerCase());
+});
+
+function gameLoop() {
+  ctx.clearRect(0, 0, 800, 600);
+  player.update();
+  player.draw(ctx);
+
+  enemies.forEach(enemy => {
+    enemy.update();
+    enemy.draw(ctx);
+
+    if (detectCollision(player, enemy)) {
+      alert('Ты проиграл! Попробуй ещё раз.');
+      window.location.reload();
+    }
+  });
+
+  ctx.fillStyle = 'white';
+  ctx.font = '18px Arial';
+  ctx.fillText('Управление стрелками. Уходи от врагов!', 10, 20);
+
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
